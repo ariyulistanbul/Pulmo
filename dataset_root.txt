@@ -1,0 +1,13 @@
+DATASET PATHİ BURADA BULUNACAK
+
+½
+dataset klasörüne geç
+windows adres çubuğu
+ctrl+a
+ctrl+c
+buraya gel
+ctrl+a
+ctrl+v
+½
+
+easy
