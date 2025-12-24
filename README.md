@@ -1,3 +1,4 @@
+
 # LIDC-IDRI Series-level Malignancy Classification  
 ## 2.5D Slice Inference with Grad-CAM
 
@@ -135,6 +136,7 @@ Demo link (to be added):
 ```
 lung25demo/
 ├── cache/
+├── logs/
 ├── outputs/
 ├── src/
 ├── venv/

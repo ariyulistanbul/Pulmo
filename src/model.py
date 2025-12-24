@@ -23,11 +23,30 @@ def build_model(backbone="resnet18", in_ch=3):
 
     raise ValueError(f"Unknown backbone: {backbone}")
 
-def gradcam_target_layers(model, backbone="resnet18"):
-    b = backbone.lower()
-    if b.startswith("resnet"):
-        return [model.layer4[-1]]
-    if b.startswith("densenet"):
-        return [model.features.denseblock4]
-    # fallback
-    return [list(model.modules())[-1]]
+def gradcam_target_layers(model, backbone: str):
+    """
+    Works for:
+    - Plain torchvision ResNet (model.layer4)
+    - Wrapped model having .backbone (model.backbone.layer4)
+    - Wrapped model having .encoder (common pattern)
+    """
+
+    # 1) wrapper varsa
+    if hasattr(model, "backbone"):
+        m = model.backbone
+    elif hasattr(model, "encoder"):
+        m = model.encoder
+    else:
+        # 2) wrapper yoksa model zaten resnet olabilir
+        m = model
+
+    # ResNet family
+    if hasattr(m, "layer4"):
+        return [m.layer4[-1]]
+
+    # DenseNet gibi alternatifler için (ileride lazım olursa)
+    if hasattr(m, "features"):
+        # DenseNet'te genelde son denseblock iyi çalışır
+        return [m.features[-1]]
+
+    raise ValueError(f"Cannot find target layer for Grad-CAM. Model type: {type(model)}")

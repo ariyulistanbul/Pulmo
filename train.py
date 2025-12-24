@@ -265,8 +265,8 @@ def main():
     train_ds = Slice25DDataset(train_items, cache_dir=args.cache_dir, train=True)
     val_ds = Slice25DDataset(val_items, cache_dir=args.cache_dir, train=False)
 
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, sampler=sampler, num_workers=0)
-    val_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=0)
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, sampler=sampler, num_workers=2)
+    val_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=2)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = build_model(args.backbone).to(device)
@@ -312,7 +312,8 @@ def main():
     for ep in range(1, args.epochs + 1):
         model.train()
         tr_losses = []
-        for X, y, _meta in train_dl:
+        pbar = tqdm(train_dl, desc=f"epoch {ep}/{args.epochs} [train]", leave=False)
+        for X, y, _meta in pbar:
             X = X.to(device)
             y = y.to(device)
             opt.zero_grad()
@@ -321,13 +322,15 @@ def main():
             loss.backward()
             opt.step()
             tr_losses.append(float(loss.item()))
+            # bar üstünde loss göster
+            pbar.set_postfix(loss=f"{tr_losses[-1]:.4f}")
 
         v_loss, v_acc, v_auc = eval_epoch()
         tr_loss = float(np.mean(tr_losses)) if tr_losses else 0.0
 
         row = {"epoch": ep, "train_loss": tr_loss, "val_loss": v_loss, "val_acc": v_acc, "val_auc": v_auc}
         history.append(row)
-        print(json.dumps(row, ensure_ascii=False))
+        print(json.dumps(row, ensure_ascii=False), flush=True)
 
         if v_auc > best_auc + 1e-4:
             best_auc = v_auc
@@ -345,6 +348,7 @@ def main():
 
     print(f"[✓] best model saved: {best_path}")
     print(f"[✓] history saved: {hist_path}")
+    print(f"[FINAL] best_auc={best_auc:.4f}", flush=True)
 
 
 if __name__ == "__main__":
