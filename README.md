@@ -146,9 +146,11 @@ lung25demo/
 ├── requirements.txt
 ├── README.md
 ├── app.py
+├── app_offline.py
 ├── train.py
 ├── run_train.ps1
 ├── run_app.ps1
+├── run_app_offline.ps1
 ├── setup_venv.ps1
 
 ```
@@ -175,6 +177,13 @@ lung25demo/
 ### Demo
 ```
 .\run_app.ps1
+```
+
+#### Offline Demo (for Teammates)
+An offline demo app is available for teammates, featuring
+slice-level inference and optional Grad-CAM visualization.
+```
+.\run_app_offline.ps1
 ```
 
 ---
