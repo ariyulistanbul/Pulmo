@@ -134,7 +134,7 @@ Demo link (to be added):
 ## Project Structure
 
 ```
-lung25demo/
+Pulmo/
 ├── cache/
 ├── logs/
 ├── outputs/
