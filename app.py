@@ -3,10 +3,10 @@ import json
 import numpy as np
 import gradio as gr
 from PIL import Image
-
 import pydicom
 
-from src.inference_offline import run_inference_offline, get_or_build_cam_for_index
+# inference modülü
+from src.inference import run_inference, get_or_build_cam_for_index
 
 
 DEFAULT_WEIGHTS = os.environ.get("WEIGHTS_PATH", "outputs/best_resnet18.pt")
@@ -40,7 +40,6 @@ def _overlay_cam_on_gray(gray_u8: np.ndarray, cam_u8: np.ndarray, alpha: float =
     base = np.stack([gray_u8, gray_u8, gray_u8], axis=-1).astype(np.float32)
 
     cam = cam_u8.astype(np.float32) / 255.0
-    # kırmızı ağırlık ver
     heat = np.zeros((H, W, 3), dtype=np.float32)
     heat[..., 0] = cam  # red
 
@@ -62,24 +61,27 @@ def do_inference(series_dir: str):
     if not os.path.isfile(DEFAULT_WEIGHTS):
         raise gr.Error(f"Model weights bulunamadı: {DEFAULT_WEIGHTS}")
 
-    json_path = run_inference_offline(
+    # Normal inference: JSON contract üretilir (dicom_files_sorted, slice_probs, best_slice_index, vb.)
+    json_path = run_inference(
         series_dir=series_dir,
         weights_path=DEFAULT_WEIGHTS,
         backbone=DEFAULT_BACKBONE,
         out_dir="outputs",
         cam_mode="on_demand",
     )
+
     data = _load_json(json_path)
 
-    # ilk gösterim: best slice
+    # İlk gösterim: best slice
     best_i = int(data["best_slice_index"])
     dicom_path = data["dicom_files_sorted"][best_i]
     gray = _read_slice_image(dicom_path)
     img = Image.fromarray(gray)
 
-    # full JSON'u gösterelim
-    data["_debug_json_path"] = json_path  # istersen gözün önünde dursun
+    # Full JSON'u da göster
+    data["_debug_json_path"] = json_path
     return json_path, best_i, img, float(data["slice_probs"][best_i]), data
+
 
 def view_slice(json_path: str, index: int, show_cam: bool, opacity: float):
     # JSON yoksa: hata fırlatma, UI'yi boş bırak
@@ -94,7 +96,7 @@ def view_slice(json_path: str, index: int, show_cam: bool, opacity: float):
     gray = _read_slice_image(dicom_path)
     prob = float(data["slice_probs"][i])
 
-    # CAM OFF
+    # CAM OFF veya border slice'lar (2.5D kısıtı)
     if not show_cam or i == 0 or i == Z - 1:
         return Image.fromarray(gray), prob
 
@@ -104,22 +106,28 @@ def view_slice(json_path: str, index: int, show_cam: bool, opacity: float):
 
     # cam boyutu farklıysa resize
     if cam_u8.shape != gray.shape:
-        cam_u8 = np.asarray(Image.fromarray(cam_u8).resize((gray.shape[1], gray.shape[0])))
+        cam_u8 = np.asarray(
+            Image.fromarray(cam_u8).resize((gray.shape[1], gray.shape[0]))
+        )
 
     over = _overlay_cam_on_gray(gray, cam_u8, alpha=float(opacity))
     return Image.fromarray(over), prob
 
 
 with gr.Blocks() as demo:
-    gr.Markdown("# Offline DICOM Viewer + Slice Prob + Grad-CAM Toggle (Local)")
+    gr.Markdown("# DICOM Viewer + Slice Probability + Grad-CAM Toggle (Local)")
 
     with gr.Row():
-        series_dir = gr.Textbox(label="DICOM Series Folder Path", placeholder=r"D:\...\series_folder")
+        series_dir = gr.Textbox(
+            label="DICOM Series Folder Path",
+            placeholder=r"D:\...\series_folder"
+        )
         run_btn = gr.Button("Run inference (build JSON)")
 
     with gr.Row():
         json_path_out = gr.Textbox(label="Result JSON Path", interactive=False)
         slice_idx = gr.Slider(minimum=0, maximum=400, value=0, step=1, label="Slice index")
+
     with gr.Row():
         cam_toggle = gr.Checkbox(value=False, label="Grad-CAM ON/OFF")
         opacity = gr.Slider(0.0, 1.0, value=0.45, step=0.05, label="CAM opacity")
@@ -153,6 +161,7 @@ with gr.Blocks() as demo:
         inputs=[json_path_out, slice_idx, cam_toggle, opacity],
         outputs=[img, prob],
     )
+
 
 if __name__ == "__main__":
     demo.launch(server_name="127.0.0.1", server_port=7860, inbrowser=True)

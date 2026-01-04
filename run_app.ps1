@@ -5,4 +5,4 @@ Set-Location $PSScriptRoot
 .\venv\Scripts\Activate.ps1
 
 # app'i başlat
-python app_offline.py
+python app.py
