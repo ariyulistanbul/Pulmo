@@ -10,5 +10,6 @@ matplotlib
 torch
 torchvision
 gradio
-# install via git in setup script:
-# pytorch-grad-cam
+
+# Grad-CAM (not reliably available via pip)
+git+https://github.com/jacobgil/pytorch-grad-cam
