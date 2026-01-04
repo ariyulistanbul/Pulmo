@@ -1,13 +1,1 @@
-DATASET PATHİ BURADA BULUNACAK
-
-½
-dataset klasörüne geç
-windows adres çubuğu
-ctrl+a
-ctrl+c
-buraya gel
-ctrl+a
-ctrl+v
-½
-
-easy
+D:\dataset\lidc-idr\manifest-1600709154662\LIDC-IDRI
